@@ -1,7 +1,7 @@
-# mlx-vlm KV-Cache Optimization Benchmarks
+# MLX-VLM KV-Cache Optimization Benchmarks
 
 Independent benchmarks of two KV-cache optimization techniques in
-[mlx-vlm](https://github.com/Blaizzy/mlx-vlm) on Apple Silicon:
+[MLX-VLM](https://github.com/Blaizzy/mlx-vlm) on Apple Silicon:
 **TurboQuant** (KV-cache quantization) and **TriAttention** (KV-cache
 token pruning). Both implemented by
 [@Prince_Canuma](https://github.com/Blaizzy).
@@ -113,7 +113,7 @@ Tested on Qwen3-VL-8B-Instruct-4bit (36 of 36 layers dense attention). TBQ colla
 
 ## Independent Confirmation
 
-The mlx-vlm PR author (@Prince_Canuma) published complementary benchmarks
+The MLX-VLM PR author (@Prince_Canuma) published complementary benchmarks
 that back the same picture:
 
 - **[MATH-500 reasoning](https://x.com/Prince_Canuma/status/2044040708571410763)**
@@ -177,7 +177,7 @@ metrics per run: prefill throughput, decode throughput, peak memory
 (`sum(c.nbytes for c in prompt_cache)`).
 
 Hardware: MacBook Pro M1 32 GB and Mac Studio M4 Max 64 GB. Both used
-mlx-vlm 0.31.1, identical model checkpoints, and the same prompt.
+MLX-VLM 0.31.1, identical model checkpoints, and the same prompt.
 Headline numbers are M4 Max unless noted.
 
 ## Running the Benchmarks
@@ -185,7 +185,7 @@ Headline numbers are M4 Max unless noted.
 ### Setup
 
 ```sh
-# Clone mlx-vlm and check out the TriAttention PR branch
+# Clone MLX-VLM and check out the TriAttention PR branch
 git clone https://github.com/Blaizzy/mlx-vlm.git ../mlx-vlm
 cd ../mlx-vlm
 git fetch origin pull/985/head:triattention-985
@@ -234,8 +234,8 @@ uv pip install -e ../mlx-vlm pytest
 
 | Component | Pinned value |
 |-----------|--------------|
-| mlx-vlm branch | `triattention-985` ([PR #985](https://github.com/Blaizzy/mlx-vlm/pull/985)) |
-| mlx-vlm commit | `b8a298b` |
+| MLX-VLM branch | `triattention-985` ([PR #985](https://github.com/Blaizzy/mlx-vlm/pull/985)) |
+| MLX-VLM commit | `b8a298b` |
 | MLX | 0.31.1 |
 | Python | 3.12 |
 | Prompt seed | `long_prompt.txt` (this folder) |
@@ -256,7 +256,7 @@ Raw per-run data tables and session notes are in `local/` (gitignored).
 ## Acknowledgements
 
 - **[Prince Canuma](https://github.com/Blaizzy)** — maintainer of
-  mlx-vlm, author of both the TurboQuant port and the TriAttention port
+  MLX-VLM, author of both the TurboQuant port and the TriAttention port
   ([PR #985](https://github.com/Blaizzy/mlx-vlm/pull/985)).
 - **TurboQuant** — Zandieh et al. (Google, ICLR 2026).
   [arxiv:2504.19874](https://arxiv.org/abs/2504.19874).
