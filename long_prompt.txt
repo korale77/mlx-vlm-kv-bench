@@ -1,0 +1,190 @@
+NORTHWIND STATION — Engineering Handbook, Edition 7
+
+This document describes the architecture, operations, and maintenance procedures
+for Northwind Station, a synthetic subsea research platform operating at a
+nominal depth of 412 meters on the Telkwa Rise. The station is owned and
+operated by the fictional Cascadia Deep Research Institute and exists solely
+as reference material for engineering training exercises. Any resemblance to
+real installations is coincidental.
+
+1. MISSION PROFILE
+
+Northwind Station supports three primary workloads: long-duration benthic
+observation (optical, acoustic, and chemical sensors), fluid sampling for
+hydrothermal vents, and periodic ROV launch and recovery. The station
+operates on a 90-day rotation cycle with a permanent crew of 14, divided into
+three watches. A fourth watch rotates in during surface supply windows, which
+occur every 30 days weather permitting. Northwind has operated continuously
+since its commissioning in March 2019.
+
+2. POWER SYSTEMS
+
+Primary power is supplied by a 1.8 megawatt thorium-fluoride reactor housed
+in the aft pressure module. The reactor is thermally coupled to a closed
+Brayton-cycle turbine spinning at 34,000 rpm. Electrical output is nominally
+1.6 megawatts at 480 volts three-phase, with 200 kilowatts reserved as
+spinning margin. A secondary array of zinc-bromide flow batteries provides
+48 hours of hotel load at a 40 percent duty cycle if the reactor is offline.
+Emergency tertiary power comes from a 240 kilowatt hydrogen fuel cell stack
+stored in the forward safety vestibule, good for approximately six hours at
+full station load.
+
+Switching between the primary, secondary, and tertiary sources is managed by
+the Power Allocation Controller (PAC), a triple-redundant fault-tolerant
+computer running the RTEMS real-time operating system. Transitions must
+complete within 200 milliseconds to avoid brownouts on the life support
+busbars. The PAC logs every transition to non-volatile memory and replicates
+the logs to the surface via the monthly data upload.
+
+3. LIFE SUPPORT
+
+The atmospheric control system maintains the crew habitat at a pressure of
+1.05 atmospheres, 21.0 percent oxygen, and 78.5 percent nitrogen with trace
+argon. Carbon dioxide is scrubbed by a two-stage molecular sieve bed plus a
+backup lithium hydroxide cartridge tray. Humidity is held between 45 and 55
+percent relative, with excess condensate fed back into the potable water
+reclamation loop. The crew consumes an average of 2.4 kilograms of oxygen
+per person per day; the station stockpiles a 60-day margin of cryogenic
+liquid oxygen in tank LOX-3.
+
+Water is reclaimed from condensate, urine, and sink graywater through a
+four-stage filtration train: particulate, activated carbon, reverse osmosis,
+and ultraviolet polishing. The system recovers 92 percent of input water
+after the UV stage. Potable output is tested hourly for total dissolved
+solids and microbial load by the Automated Water Quality Monitor installed
+at junction WQM-A7.
+
+Thermal control is handled by three cooling loops. Loop A rejects reactor
+waste heat into the surrounding ocean through a titanium heat exchanger on
+the aft pressure module. Loop B services the electronics bay and is
+temperature-limited to 18 degrees Celsius by a set of proportional valves
+controlled by the Habitat Climate Node. Loop C is a dedicated medical and
+food-storage loop maintained at 4 degrees Celsius.
+
+4. COMMUNICATIONS
+
+Surface-to-station communications rely on an acoustic modem at 10 kilohertz
+with a maximum throughput of 18 kilobits per second. The modem is backed up
+by a tethered fiber-optic umbilical that provides 1 gigabit per second when
+the surface tender is on-station. An emergency very-low-frequency radio
+beacon transmits a four-character status code every hour on the hour at
+2.4 kilohertz; receipt of this beacon is required before the surface tender
+will authorize any crew extraction.
+
+Inside the habitat, crew carry ultrasonic ID tags that broadcast at 42 kHz
+once per second. The Habitat Mesh Network logs each tag's position to the
+nearest 40 centimeters and uses the data to automatically adjust ventilation
+to occupied spaces. Tags must be recharged every 72 hours in the tag cradle
+at station K-2 near the main airlock.
+
+5. SAFETY AND EMERGENCY PROCEDURES
+
+In the event of a hull breach, the Emergency Compartmentalization System
+(ECS) seals the affected module within 4.2 seconds using explosive bolts to
+release redundant bulkhead doors. Crew in the affected compartment have
+approximately 90 seconds to exit via the nearest escape hatch before the
+doors lock for the remainder of the incident. All crew members wear
+rebreather collars that automatically inflate on exposure to seawater and
+provide 40 minutes of oxygen.
+
+Fire response follows the Inert Gas Discharge Protocol. Argon is flooded
+into the affected compartment to reduce oxygen to 12 percent, starving the
+fire while remaining survivable for crew wearing emergency breathing masks.
+The argon supply is sized for two full compartment floods per 90-day cycle.
+
+The primary escape vehicle is ESP-1, a six-person buoyant pod rated for
+surface ascent from 500 meters. Ascent time is 7 minutes from release to
+surface, with an internal pressure equalization program that prevents
+decompression injury. A secondary pod, ESP-2, carries four crew and is
+rated for 450 meters.
+
+6. MAINTENANCE CALENDAR
+
+Routine maintenance follows the 30/90/365 schedule.
+
+30-day items:
+- Replace CO2 scrubber cartridge bank A.
+- Rotate the water quality reference sensors against the backup calibration
+  standards in lab L-3.
+- Perform a dry run of the fire suppression system without discharging argon.
+- Rinse the external acoustic modem transducer head with isopropyl alcohol
+  and inspect for biofouling.
+- Verify all rebreather collars are within expiration and have a full charge.
+
+90-day items:
+- Swap the reactor primary coolant filter.
+- Calibrate the Power Allocation Controller using the reference load bank.
+- Perform a full drill of the Emergency Compartmentalization System on one
+  rotating compartment per cycle.
+- Inspect the titanium heat exchanger for biofouling and sacrificial anode
+  wear. Replace anodes if greater than 40 percent consumed.
+- Replenish the argon reservoir to full capacity during the surface supply
+  window.
+
+365-day items:
+- Full reactor core inspection by a certified inspection team deployed from
+  the surface tender.
+- Replacement of all Brayton-cycle turbine bearings.
+- End-to-end communications blackout drill.
+- Audit of every crew medical kit and replacement of any item within 60
+  days of expiration.
+- Dry dock inspection of ESP-1 and ESP-2, including pressure-testing the
+  hull to 110 percent of rated depth.
+
+7. PERSONNEL ROSTER AND RATINGS
+
+As of the current rotation, the crew complement is as follows. Commander
+Iliana Vargas serves as Mission Commander and is rated on all station
+systems including reactor operations. Dr. Hamish Okafor is Chief Scientist
+and coordinates the three research programs. Dr. Priya Raghunathan oversees
+biosensor operations and reports to Dr. Okafor. Lieutenant Commander Soren
+Koval is the Engineering Officer and reports directly to Vargas. Warrant
+Officer Naledi Brandt is the Life Support Specialist. Petty Officer Alexei
+Duma is the Communications Specialist. The remaining crew rotate through
+support roles on a monthly basis.
+
+Commander Vargas is certified for up to 60 consecutive days at depth per
+the Cascadia Deep Research Institute medical protocols. After 60 days she
+is rotated to surface duty for at least 14 days before returning to a new
+rotation. Dr. Okafor holds a waiver allowing up to 80 consecutive days at
+depth based on a 2021 physiological study.
+
+8. SCIENTIFIC INSTRUMENTATION
+
+The station's primary observation package is the OCEANUS-7 optical array,
+consisting of 14 high-sensitivity cameras and 6 fiber-optic hydrophones.
+OCEANUS-7 produces approximately 2.3 terabytes of raw data per day, which
+is compressed using a custom codec to approximately 140 gigabytes before
+being staged for monthly uplink. The compression is lossy for the camera
+frames but lossless for the hydrophone streams.
+
+Secondary instruments include a 50-channel mass spectrometer for dissolved
+gas analysis, a pair of benthic manipulator arms nicknamed Sagan and Hypatia,
+and a fluid sampling carousel capable of holding 48 independent samples at
+in-situ pressure. The carousel rotates once per sample collection and has a
+minimum cycle time of 90 seconds between samples.
+
+9. DATA RETENTION POLICY
+
+Raw sensor data from OCEANUS-7 is retained on the station for 30 days, then
+overwritten in ring-buffer fashion. Compressed data is retained for 18 months
+and archived to the Institute's long-term store at the surface facility.
+Engineering telemetry, including all Power Allocation Controller logs, is
+retained indefinitely and is never overwritten. The retention policy is
+enforced by the Data Lifecycle Manager, a small service running on the
+station's primary compute cluster.
+
+The compute cluster itself consists of 12 Apple silicon nodes arranged in a
+passively cooled chassis. Cluster nominal compute is 48 teraflops fp16.
+Crew members requesting compute for ad hoc analysis must submit a request
+through the Cluster Access Portal at least two hours before their intended
+start time.
+
+10. END OF HANDBOOK EXCERPT
+
+This concludes the reference excerpt. The complete Northwind Station
+Engineering Handbook is approximately 340 pages and covers additional topics
+including detailed ROV operations, geological survey procedures, crew
+well-being protocols, and the sealed-envelope procedures for command
+succession. Questions about the excerpt above should be directed to the
+Operations Training desk at extension 4410.
