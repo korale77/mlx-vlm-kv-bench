@@ -106,7 +106,7 @@ Tested on Qwen3-VL-8B-Instruct-4bit (36 of 36 layers dense attention). TBQ colla
 |----------|----------------|
 | Long-context QA / retrieval, 30B+ | **TBQ 3.5-bit** or **TA with budget >= 0.15 x context** |
 | Long-context reasoning / generation | **TA** (budget 1024-2048) |
-| Memory-constrained, retrieval not needed | **TA** (budget 512) |
+| Memory-constrained, exact retrieval not needed | **TA** (budget 512) |
 | Dense-attention VLMs | **Neither** — stay baseline |
 | MRoPE models (Qwen family) | **TBQ only** — TA rejects MRoPE |
 | Stacking TBQ + TA | **Don't** — output collapses |
