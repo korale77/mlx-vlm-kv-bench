@@ -15,9 +15,9 @@ holds the KV cache at **210 MB** and decode speed at **~102 tok/s**
 whether the context is 8k or 200k tokens. Baseline KV grows to 4.1 GB
 and decode drops to 34 tok/s at the same context length.
 
-![KV cache and peak memory vs context length](charts/out/chart1_flatline.png)
+![KV cache and peak memory vs context length](charts/northwind_flatline.png)
 
-![Decode speed vs context length](charts/out/chart2_decode_tps.png)
+![Decode speed vs context length](charts/northwind_decode_tps.png)
 
 ### 2. But TriAttention drops facts from the context
 
@@ -28,23 +28,45 @@ the TA budget is at least ~13% of the context length. Below that,
 details start dropping. On smaller models the threshold is higher and
 less predictable.
 
-![Retrieval accuracy heatmap](charts/out/chart3_heatmap.png)
+![Retrieval accuracy heatmap](charts/northwind_heatmap.png)
 
-### 3. TurboQuant is the safer choice when you need correct answers
+### 3. NIAH confirms TA needs budget sized to context
+
+We ran a dedicated Needle-In-A-Haystack benchmark: insert a known
+needle at 5 controlled depths (10%–90%), test retrieval across 8k–200k
+context on both Gemma-4-31B and 26B-A4B. Results confirm the Northwind
+QA findings with statistical depth (5 runs per cell instead of 1):
+
+![NIAH pass-rate heatmap](charts/niah_heatmap.png)
+
+31B with 10 full-attention layers is much more robust — TA-16384 holds
+5/5 to 128k and 4/5 at 200k. 26B with 5 full-attention layers degrades
+earlier at every budget level. BL and TBQ are 5/5 everywhere tested.
+
+The position-level breakdown shows where in the text retrieval fails
+first:
+
+![NIAH position sensitivity](charts/niah_positions.png)
+
+26B shows an early-position vulnerability — the 10% depth (near the
+start) fails first because TriAttention preferentially evicts early
+tokens.
+
+### 4. TurboQuant is the safer choice when you need correct answers
 
 It compresses KV bits instead of dropping tokens, preserving retrieval
 at 60-65% KV savings with no tuning required. The tradeoff: it doesn't
 meaningfully reduce peak memory (KV bytes shrink but attention buffers
 don't), and it breaks on fully-dense VLMs.
 
-### 4. They target different workloads — don't stack them
+### 5. They target different workloads — don't stack them
 
 Use TriAttention for reasoning, summarization, or open generation where
 speed and memory matter more than verbatim recall. Use TurboQuant for
 QA, retrieval, or any task where the answer needs to come from the
 context. Combining both collapses output quality.
 
-### 5. Four things we tested that didn't work
+### 6. Four things we tested that didn't work
 
 So you don't have to: (a) domain-specific TA calibration doesn't
 recover retrieval, (b) TBQ breaks on dense VLMs at both 3.5-bit and
@@ -90,16 +112,6 @@ it's a tuning problem, not a fundamental limitation.
 
 Threshold: budget/context >= ~13% for full retrieval, 8-13% partial, <8% fails.
 
-**TurboQuant on dense VLMs — confirmed broken:**
-
-| Context | Config | Output |
-|--------:|--------|--------|
-| 8k | Baseline | correct: "1.8 MW thorium-fluoride reactor, 48 h batteries" |
-| 8k | TBQ 3.5-bit | broken: "The primary power source. The primary power supply for the primary power is a" |
-| 8k | TBQ 4-bit | broken: "Based on the primary power is the primary power is the primary power..." |
-
-Tested on Qwen3-VL-8B-Instruct-4bit (36 of 36 layers dense attention). TBQ collapses at both 3.5- and 4-bit on this architecture.
-
 ## When to Use Which Technique
 
 | Workload | Recommendation |
@@ -110,6 +122,20 @@ Tested on Qwen3-VL-8B-Instruct-4bit (36 of 36 layers dense attention). TBQ colla
 | Dense-attention VLMs | **Neither** — stay baseline |
 | MRoPE models (Qwen family) | **TBQ only** — TA rejects MRoPE |
 | Stacking TBQ + TA | **Don't** — output collapses |
+
+## Design Space
+
+KV savings scale differently between the two techniques:
+
+![KV savings scaling](charts/northwind_savings.png)
+
+TriAttention savings grow with context (fixed cap = larger relative
+savings). TurboQuant savings stay roughly constant (fixed compression
+rate).
+
+The full speed x memory x accuracy tradeoff space on Gemma-4-26B-A4B:
+
+![Pareto design space](charts/northwind_pareto_dual.png)
 
 ## Independent Confirmation
 
@@ -134,20 +160,6 @@ Four independent measurements converge on the same regime split:
 TriAttention works well for reasoning/generation but drops facts during
 retrieval unless the budget is sized to the context.
 
-## Design Space
-
-KV savings scale differently between the two techniques:
-
-![KV savings scaling](charts/out/chart4_savings_scaling.png)
-
-TriAttention savings grow with context (fixed cap = larger relative
-savings). TurboQuant savings stay roughly constant (fixed compression
-rate).
-
-The full speed x memory x accuracy tradeoff space on Gemma-4-26B-A4B:
-
-![Pareto design space](charts/out/chart5v2_dual.png)
-
 ## Models Benchmarked
 
 | Model | Full-attn layers | TurboQuant | TriAttention |
@@ -164,21 +176,28 @@ The full speed x memory x accuracy tradeoff space on Gemma-4-26B-A4B:
 
 ## Methodology
 
-> **Read this before quoting the retrieval results.** Each cell is a
-> **single run** of a **single QA task** (find three facts in a tiled
-> "Northwind Station" handbook), graded by hand. We do not report
-> variance or use multiple prompts. Results should be read as directional,
-> not definitive — strong signal where the same config succeeds across
-> multiple context lengths, weaker on borderline cases.
+Two benchmark scripts measure different aspects of retrieval under
+KV-cache optimization:
 
-The benchmark script (`bench_turboquant.py`, ~300 lines) captures four
-metrics per run: prefill throughput, decode throughput, peak memory
-(`mx.get_peak_memory()`), and isolated KV cache bytes
-(`sum(c.nbytes for c in prompt_cache)`).
+**`bench_northwind.py`** — Multi-fact QA retrieval. Tiles a synthetic
+"Northwind Station" handbook to a target context length, asks the model
+to find three embedded facts, and grades the output by hand. Each
+(config, tier) cell is a single run. Results are directional — strong
+signal where the same config succeeds across multiple tiers, weaker on
+borderline cases.
 
-Hardware: MacBook Pro M1 32 GB and Mac Studio M4 Max 64 GB. Both used
-MLX-VLM 0.31.1, identical model checkpoints, and the same prompt.
-Headline numbers are M4 Max unless noted.
+**`bench_niah.py`** — Needle-In-A-Haystack retrieval. Inserts a known
+needle (`NIAH-7392-ECHO`) at a controlled depth (10%–90%) within tiled
+filler text. Sweeps across context lengths, needle positions, and
+KV-cache configs. Each (config, tier) cell aggregates 5 runs (one per
+position), giving N/5 pass rates. More statistical power than the
+Northwind benchmark.
+
+Both scripts capture prefill throughput, decode throughput, peak memory
+(`mx.get_peak_memory()`), and isolated KV cache bytes per run.
+
+Hardware: Mac Studio M4 Max 64 GB. MLX-VLM 0.31.1, identical model
+checkpoints across all runs.
 
 ## Running the Benchmarks
 
@@ -192,22 +211,27 @@ git fetch origin pull/985/head:triattention-985
 git switch triattention-985
 cd -
 
-# Set up venv with editable install
+# Create venv and install dependencies
 uv venv
-source .venv/bin/activate
-uv pip install -e ../mlx-vlm pytest
+uv pip install -e ../mlx-vlm
 ```
 
-### Quick start
+### Calibrate TriAttention (one-time, ~30s per model)
 
 ```sh
-# Calibrate TriAttention (one-time, ~30s)
-.venv/bin/python -m mlx_vlm.triattention_calibrate \
+uv run python -m mlx_vlm.triattention_calibrate \
   --model mlx-community/gemma-4-26b-a4b-it-4bit \
   --output gemma4_26b_calib.safetensors
 
-# Run head-to-head benchmark
-.venv/bin/python bench_turboquant.py \
+uv run python -m mlx_vlm.triattention_calibrate \
+  --model mlx-community/gemma-4-31b-it-4bit \
+  --output gemma4_31b_calib.safetensors
+```
+
+### Northwind QA benchmark
+
+```sh
+uv run python bench_northwind.py \
   --model mlx-community/gemma-4-26b-a4b-it-4bit \
   --image cats.jpg \
   --triattention-calib gemma4_26b_calib.safetensors \
@@ -217,18 +241,55 @@ uv pip install -e ../mlx-vlm pytest
   --output results.md
 ```
 
-### Bench script flags
+### NIAH benchmark
+
+```sh
+uv run python bench_niah.py \
+  --model mlx-community/gemma-4-26b-a4b-it-4bit \
+  --image cats.jpg \
+  --haystack niah_haystack.txt \
+  --triattention-calib gemma4_26b_calib.safetensors \
+  --tiers 8000 24000 60000 100000 \
+  --positions 0.10 0.25 0.50 0.75 0.90 \
+  --configs BL TBQ TA512 TA2048 TA8192 TA16384 TA32768 \
+  --max-tokens 64 \
+  --output local/niah_results/gemma4_26b.md
+```
+
+### Generate charts
+
+```sh
+uv run --with matplotlib python make_charts.py
+```
+
+### Script flags
+
+**`bench_northwind.py`:**
 
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `--model` | `mlx-community/Qwen3.5-9B-4bit` | HF model ID or local path |
 | `--image` | `cats.jpg` | Any image file (VLM requires one) |
-| `--seed-file` | `long_prompt.txt` | Text tiled to target token count |
+| `--seed-file` | `northwind_haystack.txt` | Text tiled to target token count |
 | `--tiers` | `8000 24000` | Target prompt token counts |
 | `--max-tokens` | `128` | Output tokens to generate |
 | `--configs` | `BL UNI TBQ` | Subset of BL/UNI/TBQ/TA512/TA2048/TA4096/TA8192/TA16384/TA32768 |
 | `--triattention-calib` | _(none)_ | Calibration file (required for TA configs) |
 | `--output` | `results.md` | Markdown results table |
+
+**`bench_niah.py`:**
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--model` | `mlx-community/gemma-4-26b-a4b-it-4bit` | HF model ID or local path |
+| `--image` | `cats.jpg` | Any image file (VLM requires one) |
+| `--haystack` | `niah_haystack.txt` | Filler text tiled to target length |
+| `--tiers` | `8000 24000 60000 100000` | Target prompt token counts |
+| `--positions` | `0.10 0.25 0.50 0.75 0.90` | Needle insertion depths (0.0-1.0) |
+| `--max-tokens` | `64` | Output tokens to generate |
+| `--configs` | `BL TBQ` | Subset of BL/TBQ/TA512/TA2048/TA4096/TA8192/TA16384/TA32768 |
+| `--triattention-calib` | _(none)_ | Calibration file (required for TA configs) |
+| `--output` | `local/niah_results/results.md` | Markdown results + JSONL sidecar |
 
 ## Reproducibility
 
@@ -238,20 +299,22 @@ uv pip install -e ../mlx-vlm pytest
 | MLX-VLM commit | `b8a298b` |
 | MLX | 0.31.1 |
 | Python | 3.12 |
-| Prompt seed | `long_prompt.txt` (this folder) |
+| Prompt seed (Northwind) | `northwind_haystack.txt` |
+| Haystack (NIAH) | `niah_haystack.txt` |
 
 ## Repository Contents
 
 | File | Purpose |
 |------|---------|
-| `README.md` | This file |
-| `bench_turboquant.py` | Benchmark runner (~300 lines) |
-| `long_prompt.txt` | Synthetic "Northwind Station" handbook, tiled at runtime |
-| `charts/make_charts.py` | Chart generator (matplotlib) |
-| `charts/out/*.png` | Published charts |
-| `.gitignore` | Excludes local data, logs, venv |
+| `bench_northwind.py` | Northwind Station multi-fact QA benchmark |
+| `bench_niah.py` | Needle-In-A-Haystack positional retrieval benchmark |
+| `make_charts.py` | Chart generator (matplotlib) |
+| `northwind_haystack.txt` | Synthetic "Northwind Station" handbook, tiled at runtime |
+| `niah_haystack.txt` | NIAH filler text, tiled at runtime |
+| `cats.jpg` | Dummy image (VLM requires one) |
+| `charts/*.png` | Published charts |
 
-Raw per-run data tables and session notes are in `local/` (gitignored).
+Raw per-run data is in `local/` (gitignored): Northwind results in `local/m4max_results/`, NIAH results in `local/niah_results/`.
 
 ## Acknowledgements
 

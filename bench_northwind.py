@@ -20,9 +20,9 @@ and a snippet of the generated text. Results are printed as a Markdown table
 and optionally written to a file.
 
 Run:
-    .venv/bin/python bench_turboquant.py
+    .venv/bin/python bench_northwind.py
 
-    .venv/bin/python bench_turboquant.py \\
+    .venv/bin/python bench_northwind.py \\
         --model mlx-community/Qwen3.5-9B-8bit \\
         --tiers 8000 24000 \\
         --max-tokens 128 \\
@@ -32,7 +32,7 @@ Run:
     .venv/bin/python -m mlx_vlm.triattention_calibrate \\
         --model mlx-community/gemma-4-26b-a4b-it-4bit \\
         --output gemma4_26b_calib.safetensors
-    .venv/bin/python bench_turboquant.py \\
+    .venv/bin/python bench_northwind.py \\
         --model mlx-community/gemma-4-26b-a4b-it-4bit \\
         --triattention-calib gemma4_26b_calib.safetensors \\
         --tiers 8000 24000 48000 60000 \\
@@ -56,7 +56,7 @@ from mlx_vlm.prompt_utils import apply_chat_template
 
 DEFAULT_MODEL = "mlx-community/Qwen3.5-9B-4bit"
 DEFAULT_IMAGE = "cats.jpg"  # any image; VLM requires one but content doesn't matter
-DEFAULT_SEED = Path(__file__).parent / "long_prompt.txt"
+DEFAULT_SEED = Path(__file__).parent / "northwind_haystack.txt"
 
 QUESTION = (
     "\n\n---\nBased only on the Northwind Station Engineering Handbook above, "

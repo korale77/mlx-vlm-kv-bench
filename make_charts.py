@@ -1,9 +1,9 @@
 """Chart generator for the mlx-vlm KV optimization thread.
 
-Reads the tier-x-config markdown tables in `../m4max_results/` and
-writes PNGs to `./out/`. One function per chart. Run:
+Reads the tier-x-config markdown tables in `local/m4max_results/` and
+writes PNGs to `charts/`. Run:
 
-    ../.venv/bin/python make_charts.py
+    .venv/bin/python make_charts.py
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 HERE = Path(__file__).resolve().parent
-RESULTS_DIR = HERE.parent / "local" / "m4max_results"
-OUT_DIR = HERE / "out"
+RESULTS_DIR = HERE / "local" / "m4max_results"
+OUT_DIR = HERE / "charts"
 OUT_DIR.mkdir(exist_ok=True)
 
 COLORS = {
@@ -102,7 +102,7 @@ def load_all() -> dict[str, list[Row]]:
         # in (model, prompt, MLX version, KV-opt config) — overlapping cells
         # produced byte-identical outputs across re-runs — so they're loaded
         # into Chart 3's 26B grid without a source distinction.
-        "26b_extra": HERE.parent / "local" / "results_gemma4_triattention.md",
+        "26b_extra": HERE / "local" / "results_gemma4_triattention.md",
     }
     optional = {
         # Long-context Gemma-4-31B TA stretch (Block 9, Measurement A).
@@ -326,9 +326,9 @@ def chart1_flatline(data):
         "source: snippets/mlx-vlm-turboquant/m4max_results/ · mlx-vlm 0.31.1 · 2026-04-10",
     )
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.savefig(OUT_DIR / "chart1_flatline.png", dpi=150, bbox_inches="tight")
+    fig.savefig(OUT_DIR / "northwind_flatline.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart1_flatline.png'}")
+    print(f"wrote {OUT_DIR / 'northwind_flatline.png'}")
 
 
 def chart2_decode_tps(data):
@@ -407,9 +407,9 @@ def chart2_decode_tps(data):
         "source: snippets/mlx-vlm-turboquant/m4max_results/ · mlx-vlm 0.31.1 · 2026-04-10",
     )
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.savefig(OUT_DIR / "chart2_decode_tps.png", dpi=150, bbox_inches="tight")
+    fig.savefig(OUT_DIR / "northwind_decode_tps.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart2_decode_tps.png'}")
+    print(f"wrote {OUT_DIR / 'northwind_decode_tps.png'}")
 
 
 # Retrieval outcome scoring (0=fail, 1=partial, 2=correct).
@@ -610,9 +610,9 @@ def chart3_heatmap(data):
         "source: m4max_results/ Blocks 1, 2, 3, 9, 12, 14 · mlx-vlm 0.31.1 · TriAttention PR #985 · 2026-04-10",
     )
     fig.tight_layout(rect=[0, 0.05, 1, 0.97])
-    fig.savefig(OUT_DIR / "chart3_heatmap.png", dpi=150, bbox_inches="tight")
+    fig.savefig(OUT_DIR / "northwind_heatmap.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart3_heatmap.png'}")
+    print(f"wrote {OUT_DIR / 'northwind_heatmap.png'}")
 
 
 def chart4_savings_scaling(data):
@@ -683,168 +683,12 @@ def chart4_savings_scaling(data):
         "source: m4max_results/ Blocks 1, 2, 6, 12, 13, 14 · mlx-vlm 0.31.1 · 2026-04-10",
     )
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "chart4_savings_scaling.png", dpi=150, bbox_inches="tight")
+    fig.savefig(OUT_DIR / "northwind_savings.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart4_savings_scaling.png'}")
+    print(f"wrote {OUT_DIR / 'northwind_savings.png'}")
 
 
-def chart5_pareto(data):
-    """Chart 5 — Pareto frontier: peak memory × decode TPS, color = retrieval.
-
-    Plots each (config, tier) pair as a dot. Colors encode retrieval
-    accuracy (green / orange / red), so a reader can see at a glance:
-    'pick your spot in the speed/memory/correctness space.' Same-config
-    points are connected by a thin line so the reader can trace how each
-    config moves through the design space as context grows.
-    """
-    rows = [*data.get("26b_pareto", []), *data.get("26b_pareto_extra", [])]
-    if not rows:
-        print("chart5_pareto: no data — skipping")
-        return
-
-    score_color = {0: "#c0392b", 1: "#f39c12", 2: "#27ae60"}
-    score_label = {0: "fails retrieval", 1: "partial", 2: "full retrieval"}
-    cfg_marker = {
-        "BL": "o",
-        "TA512": "s",
-        "TA8192": "D",
-        "TA16384": "v",
-        "TA32768": "^",
-    }
-    cfg_label = {
-        "BL": "Baseline",
-        "TA512": "TA-512",
-        "TA8192": "TA-8192",
-        "TA16384": "TA-16384",
-        "TA32768": "TA-32768",
-    }
-    cfg_color = {
-        "BL": COLORS["BL"],
-        "TA512": COLORS["TA512"],
-        "TA8192": COLORS["TA8192"],
-        "TA16384": "#e67e22",
-        "TA32768": "#16a085",
-    }
-
-    fig, ax = plt.subplots(figsize=(13, 8))
-
-    # Per-config trajectories (thicker, more opaque — these tell the
-    # "how each config moves through the design space" story).
-    by_cfg: dict[str, list[Row]] = {}
-    for r in rows:
-        by_cfg.setdefault(r.cfg, []).append(r)
-    for cfg, cfg_rows in by_cfg.items():
-        cfg_rows = sorted(cfg_rows, key=lambda r: r.tier)
-        ax.plot(
-            [r.peak_gb for r in cfg_rows],
-            [r.decode_tps for r in cfg_rows],
-            color=cfg_color.get(cfg, "#888"),
-            linewidth=2.0,
-            alpha=0.55,
-            zorder=1,
-        )
-
-    # Per-config endpoint tiers (first + last) — these get tier labels so
-    # the reader can orient trajectories without labeling every dot.
-    endpoint_ids = set()
-    for cfg, cfg_rows in by_cfg.items():
-        sorted_rows = sorted(cfg_rows, key=lambda r: r.tier)
-        endpoint_ids.add((cfg, sorted_rows[0].tier))
-        endpoint_ids.add((cfg, sorted_rows[-1].tier))
-
-    # Scatter: fill color = retrieval, edge color = config (dual encoding).
-    for r in rows:
-        score = _score_output(r.output)
-        ax.scatter(
-            r.peak_gb,
-            r.decode_tps,
-            s=200,
-            marker=cfg_marker.get(r.cfg, "o"),
-            color=score_color[score],
-            edgecolor=cfg_color.get(r.cfg, "#222"),
-            linewidth=2.0,
-            zorder=3,
-        )
-        if (r.cfg, r.tier) in endpoint_ids:
-            ax.annotate(
-                f"{r.tier // 1000}k",
-                xy=(r.peak_gb, r.decode_tps),
-                xytext=(10, 4),
-                textcoords="offset points",
-                ha="left",
-                fontsize=9,
-                color="#333",
-                zorder=4,
-            )
-
-    # Legends: shape = config (colored edge), fill = retrieval.
-    cfg_handles = [
-        plt.Line2D(
-            [0], [0],
-            marker=cfg_marker[c], color="w",
-            markerfacecolor="#eee", markeredgecolor=cfg_color[c],
-            markeredgewidth=2.2, markersize=13, linestyle="none",
-            label=cfg_label[c],
-        )
-        for c in ("BL", "TA512", "TA8192", "TA16384", "TA32768")
-    ]
-    color_handles = [
-        plt.Line2D(
-            [0], [0],
-            marker="o", color="w",
-            markerfacecolor=score_color[s], markeredgecolor="#333",
-            markersize=13, linestyle="none",
-            label=score_label[s],
-        )
-        for s in (2, 1, 0)
-    ]
-    leg1 = ax.legend(
-        handles=cfg_handles,
-        loc="upper right",
-        frameon=True,
-        framealpha=0.95,
-        edgecolor="#ddd",
-        fontsize=10,
-        title="Config (shape + edge)",
-        title_fontsize=10,
-    )
-    ax.add_artist(leg1)
-    ax.legend(
-        handles=color_handles,
-        loc="center right",
-        frameon=True,
-        framealpha=0.95,
-        edgecolor="#ddd",
-        fontsize=10,
-        title="Retrieval (fill)",
-        title_fontsize=10,
-    )
-
-    _style_axes(
-        ax,
-        title="Pick your spot in the speed × memory × accuracy space",
-        subtitle="Gemma-4-26B-A4B · Mac Studio M4 Max · 2 048 tokens generated per run",
-        xlabel="Peak memory during generation (GB)",
-        ylabel="Decode speed (tokens / second)",
-    )
-
-    # Trim axes to the data with a little padding.
-    xs = [r.peak_gb for r in rows]
-    ys = [r.decode_tps for r in rows]
-    ax.set_xlim(min(xs) - 0.8, max(xs) + 2.0)
-    ax.set_ylim(min(ys) - 10, max(ys) + 18)
-
-    _footer(
-        fig,
-        "source: m4max_results/results_gemma4_26b_pareto.md · mlx-vlm 0.31.1 · TriAttention PR #985 · 2026-04-15",
-    )
-    fig.tight_layout()
-    fig.savefig(OUT_DIR / "chart5_pareto.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart5_pareto.png'}")
-
-
-# -- Shared helpers for the v2 Pareto variants --
+# -- Shared helpers for the Pareto charts --
 
 _V2_SCORE_COLOR = {0: "#c0392b", 1: "#f39c12", 2: "#27ae60"}
 _V2_SCORE_LABEL = {0: "fails retrieval", 1: "partial", 2: "full retrieval"}
@@ -1015,11 +859,11 @@ def _v2_legends(ax):
     )
 
 
-def chart5v2_annotated(data):
-    """Chart 5 v2 (option 2) — single panel, annotated with TA envelope."""
+def chart5_pareto(data):
+    """Chart 5 — single-panel Pareto frontier, annotated with TA envelope."""
     rows = [*data.get("26b_pareto", []), *data.get("26b_pareto_extra", [])]
     if not rows:
-        print("chart5v2_annotated: no data — skipping")
+        print("chart5_pareto: no data — skipping")
         return
 
     fig, ax = plt.subplots(figsize=(13, 8))
@@ -1044,16 +888,16 @@ def chart5v2_annotated(data):
         "source: m4max_results/results_gemma4_26b_pareto.md · mlx-vlm 0.31.1 · TriAttention PR #985 · 2026-04-15",
     )
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "chart5v2_annotated.png", dpi=150, bbox_inches="tight")
+    fig.savefig(OUT_DIR / "northwind_pareto.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart5v2_annotated.png'}")
+    print(f"wrote {OUT_DIR / 'northwind_pareto.png'}")
 
 
-def chart5v2_dual(data):
-    """Chart 5 v2 (option 1) — dual panel: zoomed TA envelope + full range."""
+def chart5_pareto_dual(data):
+    """Chart 5 dual — zoomed TA envelope + full range with Baseline."""
     rows = [*data.get("26b_pareto", []), *data.get("26b_pareto_extra", [])]
     if not rows:
-        print("chart5v2_dual: no data — skipping")
+        print("chart5_pareto_dual: no data — skipping")
         return
 
     ta_rows = [r for r in rows if r.cfg != "BL"]
@@ -1106,9 +950,300 @@ def chart5v2_dual(data):
         "source: m4max_results/results_gemma4_26b_pareto.md · mlx-vlm 0.31.1 · TriAttention PR #985 · 2026-04-15",
     )
     fig.tight_layout(rect=[0, 0.05, 1, 0.95])
-    fig.savefig(OUT_DIR / "chart5v2_dual.png", dpi=150, bbox_inches="tight")
+    fig.savefig(OUT_DIR / "northwind_pareto_dual.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT_DIR / 'chart5v2_dual.png'}")
+    print(f"wrote {OUT_DIR / 'northwind_pareto_dual.png'}")
+
+
+# ---------------------------------------------------------------------------
+# NIAH heatmaps — built from niah_results/*.jsonl
+# ---------------------------------------------------------------------------
+
+NIAH_DIR = HERE / "local" / "niah_results"
+
+
+def _load_niah_jsonl(*filenames: str) -> list[dict]:
+    """Load and merge one or more NIAH JSONL result files."""
+    import json
+
+    rows: list[dict] = []
+    for name in filenames:
+        path = NIAH_DIR / name
+        if not path.exists():
+            print(f"  warning: {path} not found, skipping")
+            continue
+        for line in path.read_text().splitlines():
+            if line.strip():
+                rows.append(json.loads(line))
+    return rows
+
+
+def _niah_pass_rate(rows: list[dict], config: str, tier: int) -> float | None:
+    """Return pass rate (0.0-1.0) for a config at a tier, or None if untested."""
+    subset = [r for r in rows if r["config"] == config and r["tier"] == tier]
+    if not subset:
+        return None
+    return sum(1 for r in subset if r["passed"]) / len(subset)
+
+
+def niah_heatmap(rows_26b: list[dict], rows_31b: list[dict]):
+    """NIAH heatmap — pass rate per (config, tier) aggregated over needle positions.
+
+    Two panels: 31B (top, 8k-200k) and 26B (bottom, 8k-200k).
+    Cell color: green (5/5), yellow (partial), red (0/5), gray (not tested).
+    Cell text: "N/5" pass count.
+    """
+    tiers = [8000, 24000, 48000, 60000, 100000, 128000, 200000]
+    configs_31b = ["BL", "TBQ", "TA32768", "TA16384", "TA8192", "TA4096", "TA2048", "TA512"]
+    configs_26b = ["BL", "TBQ", "TA32768", "TA16384", "TA8192", "TA4096", "TA2048", "TA512"]
+    cfg_labels_31b = ["BL", "TBQ-3.5", "TA-32768", "TA-16384", "TA-8192", "TA-4096", "TA-2048", "TA-512"]
+    cfg_labels_26b = ["BL", "TBQ-3.5", "TA-32768", "TA-16384", "TA-8192", "TA-4096", "TA-2048", "TA-512"]
+
+    # Inferred cells: configs that consistently pass/fail at shorter context.
+    inferred_zero = {
+        "31b": {
+            ("TA4096", 128000), ("TA4096", 200000),
+            ("TA2048", 128000), ("TA2048", 200000),
+            ("TA512", 128000), ("TA512", 200000),
+        },
+        "26b": {
+            ("TA512", 128000), ("TA512", 200000),
+            ("TA2048", 128000), ("TA2048", 200000),
+            ("TA4096", 128000), ("TA4096", 200000),
+        },
+    }
+    inferred_pass = {
+        "31b": {("BL", 200000), ("TBQ", 200000)},
+        "26b": set(),
+    }
+
+    def pass_count(rows, config, tier):
+        subset = [r for r in rows if r["config"] == config and r["tier"] == tier]
+        if not subset:
+            return None, None
+        passed = sum(1 for r in subset if r["passed"])
+        return passed, len(subset)
+
+    def color_for_rate(passed, total):
+        if total == 0 or passed is None:
+            return "#ecf0f1"
+        rate = passed / total
+        if rate >= 0.95:
+            return "#27ae60"
+        elif rate >= 0.6:
+            return "#f1c40f"
+        elif rate >= 0.2:
+            return "#e67e22"
+        else:
+            return "#c0392b"
+
+    fig, (ax_31b, ax_26b) = plt.subplots(
+        2, 1, figsize=(12, 13), gridspec_kw={"hspace": 0.35, "height_ratios": [7, 8]}
+    )
+
+    def plot_niah_grid(ax, rows, configs, cfg_labels, tiers, title, subtitle, model_key):
+        for ci, cfg in enumerate(configs):
+            for ti, tier in enumerate(tiers):
+                if (cfg, tier) in inferred_pass[model_key]:
+                    color = "#27ae60"
+                    label = "5/5*"
+                    fg = "#222"
+                elif (cfg, tier) in inferred_zero[model_key]:
+                    color = "#c0392b"
+                    label = "0/5*"
+                    fg = "white"
+                else:
+                    passed, total = pass_count(rows, cfg, tier)
+                    if passed is None:
+                        color = "#ecf0f1"
+                        label = "—"
+                        fg = "#95a5a6"
+                    else:
+                        color = color_for_rate(passed, total)
+                        label = f"{passed}/{total}"
+                        fg = "white" if passed / total < 0.6 else "#222"
+
+                ax.add_patch(
+                    plt.Rectangle(
+                        (ti, len(configs) - 1 - ci), 1, 1,
+                        facecolor=color, edgecolor="white", linewidth=2,
+                    )
+                )
+                ax.text(
+                    ti + 0.5, len(configs) - 1 - ci + 0.5, label,
+                    ha="center", va="center", fontsize=13, fontweight="bold", color=fg,
+                )
+
+        ax.set_xlim(0, len(tiers))
+        ax.set_ylim(0, len(configs))
+        ax.set_xticks([t + 0.5 for t in range(len(tiers))])
+        ax.set_xticklabels([f"{t // 1000}k" for t in tiers], fontsize=11)
+        ax.set_yticks([len(configs) - 1 - i + 0.5 for i in range(len(configs))])
+        ax.set_yticklabels(cfg_labels, fontsize=11)
+        ax.set_title(f"{title}\n{subtitle}", loc="left", fontsize=12, pad=10, fontweight="bold")
+        ax.tick_params(axis="both", which="both", length=0)
+        for side in ("top", "right", "left", "bottom"):
+            ax.spines[side].set_visible(False)
+
+    plot_niah_grid(
+        ax_31b, rows_31b, configs_31b, cfg_labels_31b, tiers,
+        "Gemma-4-31B-it-4bit",
+        "10 full-attention layers · robust to 128k at TA-16384+",
+        "31b",
+    )
+    plot_niah_grid(
+        ax_26b, rows_26b, configs_26b, cfg_labels_26b, tiers,
+        "Gemma-4-26B-A4B-it-4bit",
+        "5 full-attention layers · degrades earlier",
+        "26b",
+    )
+
+    # Legend
+    legend_entries = [
+        plt.Rectangle((0, 0), 1, 1, facecolor="#27ae60", edgecolor="white"),
+        plt.Rectangle((0, 0), 1, 1, facecolor="#f1c40f", edgecolor="white"),
+        plt.Rectangle((0, 0), 1, 1, facecolor="#e67e22", edgecolor="white"),
+        plt.Rectangle((0, 0), 1, 1, facecolor="#c0392b", edgecolor="white"),
+    ]
+    fig.legend(
+        legend_entries,
+        ["5/5 pass", "3-4/5", "1-2/5", "0/5"],
+        loc="lower center", ncol=4, frameon=False, fontsize=11,
+        bbox_to_anchor=(0.5, 0.02),
+    )
+
+    fig.suptitle(
+        "Needle-In-A-Haystack retrieval · 5 positions × N/5 pass rate",
+        fontsize=15, fontweight="bold", y=0.995,
+    )
+    fig.text(
+        0.5, 0.965,
+        "Single-needle retrieval (NIAH-7392-ECHO) at 10%/25%/50%/75%/90% depth  ·  * = inferred from shorter-context results",
+        fontsize=9, color="#666", ha="center", style="italic",
+    )
+    _footer(fig, "source: niah_results/*.jsonl · mlx-vlm 0.31.1 · TriAttention PR #985 · 2026-04-19")
+    fig.tight_layout(rect=[0, 0.05, 1, 0.96])
+    fig.savefig(OUT_DIR / "niah_heatmap.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {OUT_DIR / 'niah_heatmap.png'}")
+
+
+def niah_position_heatmaps(rows_26b: list[dict], rows_31b: list[dict]):
+    """NIAH position heatmap — combined side-by-side for both models.
+
+    Two columns (31B left, 26B right), one row per TA config.
+    Each cell: x = context tier, y = needle depth (10%-90%), color = pass/fail.
+    """
+    tiers = [8000, 24000, 48000, 60000, 100000, 128000, 200000]
+    positions = [0.10, 0.25, 0.50, 0.75, 0.90]
+    pos_labels = ["10%", "25%", "50%", "75%", "90%"]
+    pass_color = {True: "#27ae60", False: "#c0392b"}
+    pass_symbol = {True: "P", False: "F"}
+    configs = ["TA32768", "TA16384", "TA8192", "TA4096", "TA2048"]
+    cfg_labels = ["TA-32768", "TA-16384", "TA-8192", "TA-4096", "TA-2048"]
+    n_configs = len(configs)
+
+    fig, axes = plt.subplots(
+        n_configs, 2, figsize=(16, 2.2 * n_configs + 2.0),
+        gridspec_kw={"hspace": 0.55, "wspace": 0.15},
+    )
+
+    # Inferred all-fail cells (config fails at shorter context → fails here too).
+    pos_inferred_fail = {
+        "31b": {
+            ("TA4096", 128000), ("TA4096", 200000),
+            ("TA2048", 128000), ("TA2048", 200000),
+        },
+        "26b": {
+            ("TA4096", 128000), ("TA4096", 200000),
+            ("TA2048", 128000), ("TA2048", 200000),
+        },
+    }
+    model_keys = ["31b", "26b"]
+
+    model_data = [
+        (rows_31b, "Gemma-4-31B"),
+        (rows_26b, "Gemma-4-26B-A4B"),
+    ]
+
+    for col, (rows, model_name) in enumerate(model_data):
+        mkey = model_keys[col]
+        for row, (cfg, cfg_label) in enumerate(zip(configs, cfg_labels)):
+            ax = axes[row][col]
+            for ti, tier in enumerate(tiers):
+                for pi, pos in enumerate(positions):
+                    if (cfg, tier) in pos_inferred_fail[mkey]:
+                        color = pass_color[False]
+                        symbol = "F*"
+                        fg = "white"
+                    else:
+                        match = [
+                            r for r in rows
+                            if r["config"] == cfg and r["tier"] == tier
+                            and abs(r["position"] - pos) < 0.01
+                        ]
+                        if match:
+                            passed = match[0]["passed"]
+                            color = pass_color[passed]
+                            symbol = pass_symbol[passed]
+                            fg = "white"
+                        else:
+                            color = "#ecf0f1"
+                            symbol = "—"
+                            fg = "#95a5a6"
+
+                    ax.add_patch(
+                        plt.Rectangle(
+                            (ti, len(positions) - 1 - pi), 1, 1,
+                            facecolor=color, edgecolor="white", linewidth=1.5,
+                        )
+                    )
+                    ax.text(
+                        ti + 0.5, len(positions) - 1 - pi + 0.5, symbol,
+                        ha="center", va="center", fontsize=10, fontweight="bold", color=fg,
+                    )
+
+            ax.set_xlim(0, len(tiers))
+            ax.set_ylim(0, len(positions))
+            ax.set_xticks([t + 0.5 for t in range(len(tiers))])
+            ax.set_xticklabels([f"{t // 1000}k" for t in tiers], fontsize=8)
+            ax.set_yticks([len(positions) - 1 - i + 0.5 for i in range(len(positions))])
+            ax.set_yticklabels(pos_labels if col == 0 else [], fontsize=9)
+            # Title: config label on left column, model name on top row
+            if row == 0:
+                ax.set_title(model_name, fontsize=12, fontweight="bold", pad=8)
+            # Config label on the left edge
+            if col == 0:
+                ax.set_ylabel(cfg_label, fontsize=11, fontweight="bold", rotation=0,
+                              labelpad=60, va="center")
+            ax.tick_params(axis="both", which="both", length=0)
+            for side in ("top", "right", "left", "bottom"):
+                ax.spines[side].set_visible(False)
+
+    fig.suptitle(
+        "NIAH needle-depth sensitivity by model",
+        fontsize=15, fontweight="bold", y=0.995,
+    )
+    fig.text(
+        0.5, 0.968,
+        "Per-position pass/fail · needle inserted at 10%/25%/50%/75%/90% depth in haystack",
+        fontsize=10, color="#666", ha="center", style="italic",
+    )
+    legend_entries = [
+        plt.Rectangle((0, 0), 1, 1, facecolor="#27ae60", edgecolor="white"),
+        plt.Rectangle((0, 0), 1, 1, facecolor="#c0392b", edgecolor="white"),
+        plt.Rectangle((0, 0), 1, 1, facecolor="#ecf0f1", edgecolor="#ccc"),
+    ]
+    fig.legend(
+        legend_entries, ["Pass", "Fail", "Not tested"],
+        loc="lower center", ncol=3, frameon=False, fontsize=10,
+        bbox_to_anchor=(0.5, 0.005),
+    )
+    _footer(fig, "source: niah_results/*.jsonl · mlx-vlm 0.31.1 · 2026-04-19")
+    fig.tight_layout(rect=[0.08, 0.04, 1, 0.96])
+    fig.savefig(OUT_DIR / "niah_positions.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {OUT_DIR / 'niah_positions.png'}")
 
 
 def main():
@@ -1118,8 +1253,21 @@ def main():
     chart3_heatmap(data)
     chart4_savings_scaling(data)
     chart5_pareto(data)
-    chart5v2_annotated(data)
-    chart5v2_dual(data)
+    chart5_pareto_dual(data)
+
+    # NIAH charts — loaded from JSONL, not from m4max_results markdown
+    rows_26b = _load_niah_jsonl(
+        "gemma4_26b.jsonl", "gemma4_26b_extended.jsonl", "gemma4_26b_ta4096.jsonl",
+        "gemma4_26b_48k.jsonl",
+    )
+    rows_31b = _load_niah_jsonl(
+        "gemma4_31b.jsonl", "gemma4_31b_gap.jsonl", "gemma4_31b_gap2.jsonl",
+        "gemma4_31b_extended.jsonl", "gemma4_31b_200k.jsonl",
+        "gemma4_31b_ta4096.jsonl",
+    )
+    if rows_26b or rows_31b:
+        niah_heatmap(rows_26b, rows_31b)
+        niah_position_heatmaps(rows_26b, rows_31b)
 
 
 if __name__ == "__main__":

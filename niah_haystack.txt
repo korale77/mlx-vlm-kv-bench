@@ -1,0 +1,197 @@
+GLOBAL CLIMATE MODELLING — Technical Reference, Revision 4
+
+This document provides an overview of computational methods used in
+mesoscale and global-scale atmospheric simulation. It is intended as
+background reading for research teams working with coupled
+ocean-atmosphere models and does not describe any specific operational
+forecast system.
+
+1. ATMOSPHERIC DYNAMICS
+
+General circulation models divide the atmosphere into a three-dimensional
+grid whose horizontal resolution is typically between 25 and 100
+kilometres. Each grid cell tracks temperature, pressure, humidity, and
+wind velocity at discrete time steps ranging from 30 seconds to 20
+minutes depending on the scheme. Radiative transfer is handled by a
+column model that computes shortwave and longwave fluxes at each grid
+point, coupling surface albedo to cloud fraction via a two-stream
+approximation. Convective parametrisation remains one of the largest
+sources of uncertainty: most operational models use a mass-flux approach,
+but cloud-resolving simulations at sub-kilometre resolution are
+beginning to replace parametrised convection in regional domains.
+
+The planetary boundary layer is typically represented by a
+first-order closure that relates turbulent fluxes to mean gradients
+through eddy diffusivity coefficients. Over ocean surfaces, the
+Monin-Obukhov similarity theory provides surface-layer fluxes of
+momentum, heat, and moisture. Land-surface schemes add further
+complexity by modelling soil moisture, vegetation canopy interception,
+and snowpack evolution. These surface processes feed back into the
+lowest model levels and can dominate the diurnal temperature cycle in
+continental interiors.
+
+2. OCEAN CIRCULATION
+
+Coupled models solve the primitive equations of ocean dynamics on a
+separate grid, often with finer resolution near coastlines and at the
+equator where baroclinic instability drives strong current variability.
+The thermohaline circulation is forced by freshwater flux from
+precipitation, river runoff, and ice-sheet melt, combined with heat
+flux from solar radiation and longwave back-radiation. Mesoscale eddies
+with length scales of 50 to 200 kilometres play a critical role in
+meridional heat transport but are only partially resolved in most
+global configurations; sub-grid eddy parametrisations such as the
+Gent-McWilliams scheme compensate by adding a bolus velocity to the
+tracer advection equations.
+
+Sea-ice models track ice thickness, concentration, and velocity using
+a viscous-plastic rheology that captures the mechanical behaviour of
+pack ice under wind and ocean stress. Ice-albedo feedback is a
+well-known amplifier of polar warming: as ice retreats, darker ocean
+absorbs more solar radiation, further accelerating melt. Accurate
+representation of leads and melt ponds is therefore essential for
+centennial-scale projections.
+
+3. STRUCTURAL ENGINEERING — PRESTRESSED CONCRETE BRIDGES
+
+Prestressed concrete is the dominant material for highway bridges
+spanning 30 to 200 metres. Tendons of seven-wire strand, stressed to
+approximately 75 percent of their ultimate tensile strength, introduce
+a compressive force that offsets service-load tension in the bottom
+flange. Post-tensioned box girders are cast in segments on a launching
+gantry and stressed sequentially as each segment is added; internal
+ducts are grouted after stressing to provide corrosion protection and
+bond the tendon to the surrounding concrete.
+
+Long-term losses in prestress arise from three mechanisms: elastic
+shortening at transfer, creep of the concrete under sustained
+compression, and relaxation of the steel strand. Designers typically
+assume total losses of 15 to 25 percent of the initial jacking force.
+Deflection monitoring during construction uses precise levelling and
+laser scanning to confirm that the as-built profile matches the
+predicted camber curve; deviations exceeding five millimetres trigger a
+review of the segment casting geometry.
+
+4. AGRICULTURAL SOIL MANAGEMENT
+
+Crop rotation is a foundational practice for maintaining soil fertility
+and breaking pest and disease cycles. A typical four-year rotation in
+temperate regions alternates between a cereal, a legume, a root crop,
+and a brassica or cover crop. Legumes fix atmospheric nitrogen through
+symbiotic bacteria in root nodules, contributing 80 to 200 kilograms of
+nitrogen per hectare to the subsequent crop. Cover crops planted after
+harvest protect the soil surface from erosion, improve water
+infiltration, and sequester carbon in root biomass.
+
+Soil organic matter content is a key indicator of long-term
+productivity. Conventional tillage accelerates decomposition by
+exposing organic matter to oxygen, whereas no-till systems preserve soil
+structure and promote earthworm activity. Field trials spanning two
+decades show that no-till management increases topsoil carbon by 0.3 to
+0.5 tonnes per hectare per year, though the benefit diminishes in
+poorly drained soils where anaerobic conditions already slow
+decomposition.
+
+Precision agriculture uses variable-rate application of fertiliser and
+lime based on georeferenced soil sampling and yield maps. Sensors
+mounted on tractors measure canopy reflectance in real time, enabling
+nitrogen side-dressing rates to be adjusted within a single pass across
+the field. The economic break-even point for adopting variable-rate
+technology depends on field variability: uniform fields show little
+benefit, while fields with heterogeneous soil types can recover
+equipment costs within three seasons.
+
+5. DEEP-SEA OBSERVATORY NETWORKS
+
+Cabled ocean observatories deliver continuous power and data bandwidth
+to instruments deployed at depths exceeding 2000 metres. A typical
+backbone consists of a fibre-optic telecommunications cable delivering
+10 kilowatts to junction boxes spaced every 50 to 100 kilometres along
+the cable route. Secondary extension cables branch to instrument
+platforms on the seafloor, each drawing 200 to 400 watts.
+
+Acoustic Doppler current profilers mounted on benthic frames measure
+three-component velocity profiles through the water column at intervals
+of one to five minutes. Hydrophone arrays record ambient sound from
+shipping, marine mammals, and seismic events, producing continuous
+spectrograms that require several terabytes of storage per month.
+Chemical sensors for dissolved oxygen, pH, and methane concentration
+complement the physical measurements and provide early warning of
+hydrothermal or cold-seep anomalies.
+
+Data latency from seafloor to shore is typically under one second for
+real-time streams, though higher-bandwidth instruments such as video
+cameras and multibeam sonars batch their data into hourly uploads.
+Quality control is applied on shore through automated range checks,
+spike detection, and cross-sensor consistency tests before the data
+are served to the research community via standards-compliant web
+services.
+
+6. WATER TREATMENT PROCESSES
+
+Municipal water treatment begins with coagulation, in which aluminium
+sulphate or ferric chloride is dosed into raw water to destabilise
+colloidal particles. Rapid mixing disperses the coagulant uniformly,
+after which slow mixing in a flocculation basin encourages particle
+aggregation into settleable flocs. Sedimentation tanks operate at
+surface loading rates of one to two cubic metres per square metre per
+hour; inclined-plate settlers can double this rate by increasing the
+effective settling area within the same tank footprint.
+
+Granular media filtration removes residual turbidity downstream of
+sedimentation. Dual-media filters with anthracite over sand achieve
+effluent turbidities below 0.1 nephelometric turbidity units under
+normal operating conditions. Filters are backwashed every 24 to 72
+hours by reversing the flow at a rate sufficient to expand the bed by
+20 to 30 percent, dislodging accumulated solids.
+
+Disinfection is the final barrier against microbial pathogens.
+Chlorination remains the most common method due to its low cost and
+residual protection in the distribution network. Ultraviolet
+irradiation at a dose of 40 millijoules per square centimetre provides
+effective inactivation of Cryptosporidium oocysts, which are resistant
+to chlorine at practical contact times. Ozonation offers strong
+oxidation of taste and odour compounds but produces no lasting residual
+and may form bromate in waters with elevated bromide concentrations.
+
+7. RAILWAY SIGNALLING SYSTEMS
+
+Modern mainline railways use continuous automatic train protection
+systems that transmit movement authorities to the cab via coded track
+circuits or balise transponders. The European Train Control System
+defines four levels of supervision, from intermittent speed checks at
+fixed signals to full moving-block operation with continuous radio
+communication. Moving-block signalling eliminates fixed block sections
+and computes a safe following distance based on real-time train speed,
+braking performance, and communication latency, thereby increasing line
+capacity by 20 to 40 percent on congested corridors.
+
+Interlocking logic ensures that conflicting routes cannot be set
+simultaneously. Solid-state interlockings implement the same safety
+rules as older relay-based systems but in software running on
+redundant processors with diverse compilation chains. Formal
+verification techniques, including model checking and theorem proving,
+are increasingly applied to interlocking software to demonstrate
+compliance with the highest safety integrity levels defined by
+international standards.
+
+8. SATELLITE ORBIT MECHANICS
+
+Low Earth orbit satellites at altitudes between 400 and 800 kilometres
+experience significant atmospheric drag that decays the orbit over
+months to years. Drag coefficients depend on the satellite's
+cross-sectional area, attitude, and the highly variable thermospheric
+density, which fluctuates with the solar extreme-ultraviolet flux and
+geomagnetic activity. Orbit maintenance manoeuvres using small
+thrusters compensate for drag and keep the satellite within its
+designated ground-track repeat cycle, which is critical for Earth
+observation missions that require consistent illumination geometry.
+
+Sun-synchronous orbits exploit the oblateness of the Earth to precess
+the orbital plane at a rate matching the apparent motion of the Sun,
+maintaining a fixed local solar time at the ascending node. This
+geometry is favoured for optical imaging because it provides repeatable
+shadow lengths and spectral illumination conditions. Inclinations for
+sun-synchronous orbits are typically between 96 and 99 degrees,
+depending on altitude, and are computed from the secular rate of nodal
+precession due to the J2 zonal harmonic of the geopotential.
